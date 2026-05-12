@@ -1,7 +1,12 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,700;0,900;1,400&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
+
+body {
+  font-family: 'Inter', sans-serif !important;
+}
 
 @custom-variant dark (&:is(.dark *));
 
