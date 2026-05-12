@@ -11,7 +11,9 @@ node_modules
 dist
 dist-ssr
 *.local
-
+.env
+CTC_API/bin/
+CTC_API/obj/
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
