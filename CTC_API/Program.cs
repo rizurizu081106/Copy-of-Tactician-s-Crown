@@ -54,7 +54,10 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+if (builder.Configuration.GetValue("EnableHttpsRedirection", true))
+{
+    app.UseHttpsRedirection();
+}
 
 // QUAN TRỌNG: Thứ tự Use phải chuẩn như thế này!
 app.UseCors("AllowReact");       // 1. Mở cửa cho React vào
