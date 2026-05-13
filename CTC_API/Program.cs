@@ -67,4 +67,10 @@ app.UseAuthorization();          // 3. Trạm phân quyền (Admin hay Player)
 app.MapControllers();
 app.MapHub<MatchHub>("/matchHub");
 
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    dbContext.Database.Migrate();
+}
+
 app.Run();
