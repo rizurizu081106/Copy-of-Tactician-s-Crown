@@ -17,6 +17,7 @@ export default function AdminDashboard() {
   const [activeBrackets, setActiveBrackets] = useState<any[]>([]);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [allAccounts, setAllAccounts] = useState<any[]>([]);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   const fetchPendingLobbies = () => {
     api.get("/MatchLobbies/pending-approval")
@@ -357,7 +358,7 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
 
-            {/* HỒ SƠ CHỜ DUYỆT */}
+            {/* HỒ SƠ CHỜ DUYỆT - ĐẦY ĐỦ BẰNG CHỨNG */}
             <Card className="bg-[#0f0606] border-[#ffcc00]/50">
               <CardHeader className="border-b border-[#ffcc00]/20 bg-[#1a1500]">
                 <CardTitle className="text-[#ffcc00] uppercase font-black flex justify-between">
@@ -365,22 +366,60 @@ export default function AdminDashboard() {
                   <Badge className="bg-yellow-600 text-black font-black">{pendingLobbies.length}</Badge>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="pt-6 max-h-[400px] overflow-y-auto custom-scrollbar">
+              <CardContent className="pt-6 max-h-[600px] overflow-y-auto custom-scrollbar">
                 {isLoading ? <div className="text-center text-yellow-500 py-10 animate-pulse font-bold">Đang quét...</div> : pendingLobbies.length === 0 ? <div className="text-center text-green-500/50 py-10 font-bold border border-green-900/30 rounded-lg bg-[#0a1a0a]">[ SẠCH ]</div> : (
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     {pendingLobbies.map((lobby) => (
-                      <div key={lobby.id} className="bg-[#1a1111] border border-[#ffcc00]/30 rounded-lg p-4">
-                        <div className="flex justify-between items-center border-b border-[#490000] pb-2 mb-3">
-                          <h3 className="text-[#ffcc00] font-black text-[11px] uppercase">{lobby.lobbyName}</h3>
-                          <button onClick={() => handleApprove(lobby.id)} className="px-3 py-1 bg-green-700 text-white font-black text-[10px] uppercase rounded">✅ DUYỆT</button>
+                      <div key={lobby.id} className="bg-[#1a1111] border border-[#ffcc00]/30 rounded-lg overflow-hidden">
+                        {/* Header phòng */}
+                        <div className="flex justify-between items-center bg-[#1a1500] border-b border-[#ffcc00]/20 px-4 py-3">
+                          <h3 className="text-[#ffcc00] font-black text-sm uppercase tracking-wider">{lobby.lobbyName}</h3>
+                          <div className="flex gap-2">
+                            <button onClick={() => handleApprove(lobby.id)} className="px-4 py-1.5 bg-green-700 hover:bg-green-600 text-white font-black text-xs uppercase rounded transition-colors">✅ DUYỆT KẾT QUẢ</button>
+                          </div>
                         </div>
-                        <div className="grid grid-cols-4 gap-1">
-                          {lobby.players.sort((a:any, b:any) => a.rank - b.rank).slice(0,4).map((p: any) => (
-                            <div key={p.id} className="bg-black p-1 rounded border border-[#2f0000] text-center">
-                              <span className="text-[#ffcc00] font-black text-[10px] block">T{p.rank}</span>
-                              <span className="text-gray-300 font-bold text-[9px] truncate block">{p.riotId?.split('#')[0]}</span>
-                            </div>
-                          ))}
+                        {/* Danh sách 8 người chơi + bằng chứng */}
+                        <div className="p-4 space-y-2">
+                          {lobby.players.sort((a:any, b:any) => a.rank - b.rank).map((p: any) => {
+                            const isTop4 = p.rank >= 1 && p.rank <= 4;
+                            return (
+                              <div key={p.id} className={`flex items-center gap-3 p-2 rounded-lg border transition-all ${
+                                isTop4 ? 'bg-[#1a1a0a] border-[#ffcc00]/20' : 'bg-[#0f0606] border-[#2f0000]'
+                              }`}>
+                                {/* Rank */}
+                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-black text-sm shrink-0 ${
+                                  p.rank === 1 ? 'bg-yellow-600 text-black' :
+                                  p.rank === 2 ? 'bg-gray-400 text-black' :
+                                  p.rank === 3 ? 'bg-orange-600 text-white' :
+                                  p.rank === 4 ? 'bg-red-800 text-red-200' :
+                                  'bg-[#200b0b] text-gray-500 border border-[#490000]'
+                                }`}>T{p.rank}</div>
+                                {/* Tên người chơi */}
+                                <div className="flex-1 min-w-0">
+                                  <span className={`font-bold text-sm truncate block ${isTop4 ? 'text-white' : 'text-gray-400'}`}>
+                                    {p.riotId?.split('#')[0] || 'Trống'}
+                                  </span>
+                                  <span className="text-[10px] text-gray-600">{p.rank <= 4 ? `+${9-p.rank} điểm` : `+${9-p.rank} điểm`}</span>
+                                </div>
+                                {/* Ảnh bằng chứng */}
+                                {p.evidenceUrl ? (
+                                  <div
+                                    onClick={() => setPreviewImage(p.evidenceUrl)}
+                                    className="w-16 h-10 rounded border border-[#ffcc00]/30 overflow-hidden cursor-pointer hover:border-[#ffcc00] hover:shadow-[0_0_10px_rgba(255,204,0,0.3)] transition-all shrink-0 group relative"
+                                  >
+                                    <img src={p.evidenceUrl} alt="evidence" className="w-full h-full object-cover" />
+                                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                      <span className="text-[8px] text-white font-bold">🔍 XEM</span>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="w-16 h-10 rounded border border-dashed border-[#490000] flex items-center justify-center shrink-0">
+                                    <span className="text-[8px] text-gray-600 italic">Chưa nộp</span>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     ))}
@@ -495,6 +534,33 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* MODAL XEM ẢNH BẰNG CHỨNG */}
+      {previewImage && (
+        <div
+          className="fixed inset-0 z-[200] bg-black/90 flex items-center justify-center p-4 backdrop-blur-sm cursor-pointer"
+          onClick={() => setPreviewImage(null)}
+        >
+          <div className="relative max-w-4xl w-full" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setPreviewImage(null)}
+              className="absolute -top-3 -right-3 w-10 h-10 bg-red-700 hover:bg-red-600 text-white font-black text-xl rounded-full border-2 border-red-500 shadow-[0_0_15px_rgba(255,0,0,0.5)] transition-colors z-10 flex items-center justify-center"
+            >&times;</button>
+            <div className="bg-[#0f0606] border-2 border-[#ffcc00]/50 rounded-xl overflow-hidden shadow-[0_0_40px_rgba(255,204,0,0.2)]">
+              <div className="bg-[#1a1500] border-b border-[#ffcc00]/20 px-4 py-2">
+                <span className="text-[#ffcc00] font-black text-xs uppercase tracking-widest">📸 Bằng chứng kết quả ván đấu</span>
+              </div>
+              <div className="p-2">
+                <img
+                  src={previewImage}
+                  alt="Evidence preview"
+                  className="w-full max-h-[75vh] object-contain rounded"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
