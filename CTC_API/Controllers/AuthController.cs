@@ -216,7 +216,7 @@ namespace CTC_API.Controllers
                 .Take(100) // Giới hạn 100 bản ghi mới nhất
                 .Select(l => new {
                     id = l.Id,
-                    adminName = l.Admin.RiotId,
+                    adminName = l.Admin != null ? l.Admin.RiotId : "(Không xác định)",
                     actionType = l.ActionType,
                     description = l.Description,
                     timestamp = l.Timestamp

@@ -13,10 +13,6 @@ namespace CTC_API.Models
         public MatchLobby MatchLobby { get; set; } = null!; 
 
         public int AccountId { get; set; }
-        [ForeignKey("AccountId")]
-        [JsonIgnore]
-        public Account Player { get; set; } = null!;
-        
         [JsonIgnore]
         public Account Account { get; set; } = null!; 
 

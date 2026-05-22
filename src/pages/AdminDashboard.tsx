@@ -47,13 +47,19 @@ export default function AdminDashboard() {
         setCurrentTournament(null);
       }
 
+    try {
       const logsRes = await api.get("/Auth/audit-logs");
       setAuditLogs(logsRes.data);
+    } catch (error) {
+      console.warn("Không thể tải audit logs", error);
+      setAuditLogs([]);
+    }
 
       const accountsRes = await api.get("/Auth/all");
       setAllAccounts(accountsRes.data);
     } catch (error) {
       console.error("Lỗi khi tải dữ liệu:", error);
+      alert("❌ Có lỗi xảy ra!");
     }
   };
 
@@ -219,7 +225,10 @@ export default function AdminDashboard() {
         playerIds: playerIdsToPlay, tournamentId: currentTournament.id, stageName: stageName
       })
       .then(() => { alert(`✅ Đã khởi tạo ${stageName}!`); fetchAdminData(); fetchPendingLobbies(); })
-      .catch(err => alert(err.response?.data?.message || "❌ Có lỗi xảy ra!"));
+      .catch(err => {
+        console.error("Shuffle error", err);
+        alert(err.response?.data?.message || "❌ Có lỗi xảy ra!");
+      });
     }
   };
 

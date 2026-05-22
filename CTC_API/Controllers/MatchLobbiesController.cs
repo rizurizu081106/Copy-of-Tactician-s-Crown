@@ -420,70 +420,82 @@ namespace CTC_API.Controllers
         [HttpPost("shuffle")]
         public async Task<IActionResult> ShuffleLobbies([FromBody] ShuffleRequestDto request)
         {
-            if (request.PlayerIds == null || request.PlayerIds.Count == 0) 
-                return BadRequest(new { message = "Vui lòng chọn người chơi!" });
-
-            int currentRound = await _context.MatchLobbies
-                .Where(l => l.TournamentId == request.TournamentId)
-                .MaxAsync(l => (int?)l.RoundNumber) ?? 0;
-            int nextRound = currentRound + 1;
-
-            var pendingLobbies = await _context.MatchLobbies
-                .Where(l => l.TournamentId == request.TournamentId && l.Status != "Completed" && l.RoundNumber == nextRound)
-                .ToListAsync();
-            _context.MatchLobbies.RemoveRange(pendingLobbies);
-            await _context.SaveChangesAsync();
-
-            var playersToPlay = await _context.Accounts
-                .Where(a => request.PlayerIds.Contains(a.Id) && a.Role != "Admin")
-                .ToListAsync();
-
-            var shuffled = playersToPlay.OrderBy(x => Guid.NewGuid()).ToList();
-            int lobbyCount = (request.StageName == "VÒNG VỚT" || request.StageName == "CHUNG KẾT") ? 1 : (int)Math.Ceiling((double)shuffled.Count / 8);
-
-            for (int i = 0; i < lobbyCount; i++)
+            try
             {
-                var lobbyPlayers = shuffled.Skip(i * 8).Take(8).ToList();
+                if (request.PlayerIds == null || request.PlayerIds.Count == 0)
+                    return BadRequest(new { message = "Vui lòng chọn người chơi!" });
 
-                string lobbyName = "";
-                if (request.StageName == "VÒNG LOẠI") lobbyName = $"VÒNG LOẠI - BẢNG {(char)('A' + i)} - VÁN {nextRound}";
-                else if (request.StageName == "BÁN KẾT") lobbyName = $"BÁN KẾT - BẢNG {i + 1}";
-                else if (request.StageName == "VÒNG VỚT") lobbyName = $"BÁN KẾT - VÒNG VỚT";
-                else if (request.StageName == "CHUNG KẾT") lobbyName = $"CHUNG KẾT";
+                int currentRound = await _context.MatchLobbies
+                    .Where(l => l.TournamentId == request.TournamentId)
+                    .MaxAsync(l => (int?)l.RoundNumber) ?? 0;
+                int nextRound = currentRound + 1;
 
-                var newLobby = new MatchLobby
-                {
-                    TournamentId = request.TournamentId,
-                    LobbyName = lobbyName, 
-                    RoundNumber = nextRound,
-                    Status = "Playing",
-                    HostId = lobbyPlayers.First().Id
-                };
-
-                _context.MatchLobbies.Add(newLobby);
-                await _context.SaveChangesAsync(); 
-
-                foreach (var p in lobbyPlayers)
-                {
-                    _context.MatchResults.Add(new MatchResult { MatchLobbyId = newLobby.Id, AccountId = p.Id, Rank = 0, PointsEarned = 0 });
-                }
-            }
-
-            await _context.SaveChangesAsync();
-
-            // GHI LOG ADMIN
-            var adminIdShuffle = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (adminIdShuffle != null) {
-                _context.AdminAuditLogs.Add(new AdminAuditLog {
-                    AdminId = int.Parse(adminIdShuffle),
-                    ActionType = "Bốc thăm chia bảng",
-                    Description = $"Khởi tạo {request.StageName} với {request.PlayerIds.Count} tuyển thủ",
-                    Timestamp = DateTime.Now
-                });
+                var pendingLobbies = await _context.MatchLobbies
+                    .Where(l => l.TournamentId == request.TournamentId && l.Status != "Completed" && l.RoundNumber == nextRound)
+                    .ToListAsync();
+                _context.MatchLobbies.RemoveRange(pendingLobbies);
                 await _context.SaveChangesAsync();
-            }
 
-            return Ok(new { message = $"Đã khởi tạo {request.StageName} thành công!" });
+                var playersToPlay = await _context.Accounts
+                    .Where(a => request.PlayerIds.Contains(a.Id) && a.Role != "Admin")
+                    .ToListAsync();
+
+                var shuffled = playersToPlay.OrderBy(x => Guid.NewGuid()).ToList();
+                int lobbyCount = (request.StageName == "VÒNG VỚT" || request.StageName == "CHUNG KẾT") ? 1 : (int)Math.Ceiling((double)shuffled.Count / 8);
+
+                for (int i = 0; i < lobbyCount; i++)
+                {
+                    var lobbyPlayers = shuffled.Skip(i * 8).Take(8).ToList();
+
+                    string lobbyName = "";
+                    if (request.StageName == "VÒNG LOẠI") lobbyName = $"VÒNG LOẠI - BẢNG {(char)('A' + i)} - VÁN {nextRound}";
+                    else if (request.StageName == "BÁN KẾT") lobbyName = $"BÁN KẾT - BẢNG {i + 1}";
+                    else if (request.StageName == "VÒNG VỚT") lobbyName = $"BÁN KẾT - VÒNG VỚT";
+                    else if (request.StageName == "CHUNG KẾT") lobbyName = $"CHUNG KẾT";
+
+                    var newLobby = new MatchLobby
+                    {
+                        TournamentId = request.TournamentId,
+                        LobbyName = lobbyName,
+                        RoundNumber = nextRound,
+                        Status = "Playing",
+                        HostId = lobbyPlayers.First().Id
+                    };
+
+                    _context.MatchLobbies.Add(newLobby);
+                    await _context.SaveChangesAsync();
+
+                    foreach (var p in lobbyPlayers)
+                    {
+                        _context.MatchResults.Add(new MatchResult { MatchLobbyId = newLobby.Id, AccountId = p.Id, Rank = 0, PointsEarned = 0 });
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+
+                // GHI LOG ADMIN
+                var adminIdShuffle = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (adminIdShuffle != null)
+                {
+                    _context.AdminAuditLogs.Add(new AdminAuditLog {
+                        AdminId = int.Parse(adminIdShuffle),
+                        ActionType = "Bốc thăm chia bảng",
+                        Description = $"Khởi tạo {request.StageName} với {request.PlayerIds.Count} tuyển thủ",
+                        Timestamp = DateTime.Now
+                    });
+                    await _context.SaveChangesAsync();
+                }
+
+                return Ok(new { message = $"Đã khởi tạo {request.StageName} thành công!" });
+            }
+            catch (Exception ex)
+            {
+                var innerMsg = ex.InnerException != null ? ex.InnerException.Message : "";
+                var logPath = Path.Combine(Directory.GetCurrentDirectory(), "Logs", "shuffle-errors.log");
+                var logLine = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {ex.GetType().Name}: {ex.Message} | INNER: {innerMsg}\n{ex.StackTrace}\n";
+                await System.IO.File.AppendAllTextAsync(logPath, logLine);
+                return StatusCode(500, new { message = $"Lỗi server: {innerMsg}" });
+            }
         }
     }
 
